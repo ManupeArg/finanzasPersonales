@@ -3,7 +3,7 @@ export type Moneda = 'ARS' | 'USD' | 'EUR'
 export interface Cuenta { id: string; tipo: 'ahorro' | 'actual'; nombre: string; moneda: Moneda; monto: number }
 export interface Gasto { id: string; fecha: string; descripcion: string; categoria: string; monto: number }
 export interface Categoria { id: string; nombre: string; fija: boolean }
-export interface Ingreso { id: string; descripcion: string; monto: number; recurrente: boolean; dia: number | null; fecha: string | null }
+export interface Ingreso { id: string; descripcion: string; monto: number; moneda: Moneda; recurrente: boolean; dia: number | null; fecha: string | null }
 export interface Meta { id: string; nombre: string; costo: number; moneda: Moneda; fecha: string; pct_ahorros: number }
 /** Cosas que te querés comprar. Dónde y precio pueden no saberse todavía. */
 export interface Deseo { id: string; nombre: string; donde: string | null; precio: number | null }

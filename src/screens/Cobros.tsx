@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { fechaCorta, hoyISO, plata } from '../lib/format'
-import type { Ingreso } from '../lib/types'
+import type { Ingreso, Moneda } from '../lib/types'
 import { useResumen, useStore } from '../store'
-import { Campo, Encabezado, Hoja, PieFormulario, Vacio, montoValido } from '../ui'
+import { Campo, Encabezado, Hoja, PieFormulario, SelectorMoneda, Vacio, montoValido } from '../ui'
 
 export default function Cobros() {
   const { datos } = useStore()
@@ -15,9 +15,9 @@ export default function Cobros() {
     <>
       <Encabezado titulo="Cobros" volver />
       <div className="total">
-        <span>Cobrás por mes</span>
+        <span>Cobrás por mes, en pesos</span>
         <strong>{plata(r.cobroMensual)}</strong>
-        {proximo && <p>{proximo.faltan === 0 ? 'Hoy cobrás' : `En ${proximo.faltan} ${proximo.faltan === 1 ? 'día' : 'días'} cobrás`} {plata(proximo.monto)} ({proximo.descripcion})</p>}
+        {proximo && <p>{proximo.faltan === 0 ? 'Hoy cobrás' : `En ${proximo.faltan} ${proximo.faltan === 1 ? 'día' : 'días'} cobrás`} {plata(proximo.monto, proximo.moneda)} ({proximo.descripcion})</p>}
       </div>
       {lista.length === 0 && <Vacio>Agregá tu sueldo con el día en que lo cobrás. Si tenés un cobro único, como el aguinaldo, cargalo con su fecha.</Vacio>}
       <ul className="lista">
@@ -27,7 +27,9 @@ export default function Cobros() {
               <span className="lista-nombre">{i.descripcion}
                 <small>{i.recurrente ? `Todos los meses, el día ${i.dia}` : i.fecha ? `Una vez, el ${fechaCorta(i.fecha)} de ${i.fecha.slice(0, 4)}${i.fecha < r.hoy ? ' (ya pasó)' : ''}` : ''}</small>
               </span>
-              <span className="lista-valor">{plata(i.monto)}</span>
+              <span className="lista-valor">{plata(i.monto, i.moneda ?? 'ARS')}
+                {(i.moneda ?? 'ARS') !== 'ARS' && <small>{r.enPesos(i.monto, i.moneda) > 0 ? plata(r.enPesos(i.monto, i.moneda)) : 'sin cotización'}</small>}
+              </span>
             </button>
           </li>
         ))}
@@ -42,6 +44,7 @@ function FormCobro({ ingreso, onCerrar }: { ingreso: Ingreso | null; onCerrar: (
   const { crear, editar, borrar } = useStore()
   const [descripcion, setDescripcion] = useState(ingreso?.descripcion ?? 'Sueldo')
   const [monto, setMonto] = useState(ingreso ? String(ingreso.monto).replace('.', ',') : '')
+  const [moneda, setMoneda] = useState<Moneda>(ingreso?.moneda ?? 'ARS')
   const [recurrente, setRecurrente] = useState(ingreso?.recurrente ?? true)
   const [dia, setDia] = useState(String(ingreso?.dia ?? ''))
   const [fecha, setFecha] = useState(ingreso?.fecha ?? hoyISO())
@@ -55,7 +58,7 @@ function FormCobro({ ingreso, onCerrar }: { ingreso: Ingreso | null; onCerrar: (
     if (n === null) return setFalla('Escribí cuánto vas a cobrar, solo con números.')
     if (recurrente && !(Number.isInteger(d) && d >= 1 && d <= 31)) return setFalla('El día de cobro tiene que ser un número del 1 al 31.')
     if (!recurrente && !fecha) return setFalla('Elegí la fecha del cobro.')
-    const fila = { descripcion: descripcion.trim(), monto: n, recurrente, dia: recurrente ? d : null, fecha: recurrente ? null : fecha }
+    const fila = { descripcion: descripcion.trim(), monto: n, moneda, recurrente, dia: recurrente ? d : null, fecha: recurrente ? null : fecha }
     if (await (ingreso ? editar('ingresos', ingreso.id, fila) : crear('ingresos', fila))) onCerrar()
   }
 
@@ -63,6 +66,7 @@ function FormCobro({ ingreso, onCerrar }: { ingreso: Ingreso | null; onCerrar: (
     <Hoja titulo={ingreso ? 'Editar cobro' : 'Agregar cobro'} onCerrar={onCerrar}>
       <form onSubmit={guardar}>
         <Campo etiqueta="Qué cobrás"><input value={descripcion} onChange={e => setDescripcion(e.target.value)} /></Campo>
+        <Campo etiqueta="En qué moneda cobrás"><SelectorMoneda valor={moneda} onChange={setMoneda} /></Campo>
         <Campo etiqueta="Cuánto"><input value={monto} onChange={e => setMonto(e.target.value)} inputMode="decimal" placeholder="0" autoFocus={!ingreso} /></Campo>
         <Campo etiqueta="Cuándo">
           <div className="segmentos" role="radiogroup" aria-label="Frecuencia">

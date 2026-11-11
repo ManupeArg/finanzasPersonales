@@ -36,11 +36,16 @@ create table if not exists public.ingresos (
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
   descripcion text not null,
   monto numeric not null,
+  moneda text not null default 'ARS' check (moneda in ('ARS', 'USD', 'EUR')),
   recurrente boolean not null default true,
   dia int check (dia between 1 and 31),
   fecha date,
   created_at timestamptz not null default now()
 );
+
+-- Para bases creadas antes de que los cobros tuvieran moneda.
+alter table public.ingresos
+  add column if not exists moneda text not null default 'ARS' check (moneda in ('ARS', 'USD', 'EUR'));
 
 create table if not exists public.metas (
   id uuid primary key default gen_random_uuid(),

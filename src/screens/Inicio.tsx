@@ -10,7 +10,7 @@ export default function Inicio() {
   const dias = diasDelMes(r.mes)
   const proximo = r.cobros[0]
   // Días de cobro de este mes, incluidos los que ya pasaron, para marcarlos en la línea.
-  const cobrosDelMes = [...new Set(proximosCobros(datos.ingresos, `${r.mes}-01`).filter(c => mesDe(c.fecha) === r.mes).map(c => Number(c.fecha.slice(8))))]
+  const cobrosDelMes = [...new Set(proximosCobros(datos.ingresos, `${r.mes}-01`, ajustes).filter(c => mesDe(c.fecha) === r.mes).map(c => Number(c.fecha.slice(8))))]
 
   const metas = datos.metas
     .filter(m => m.fecha >= r.hoy)
@@ -49,8 +49,8 @@ export default function Inicio() {
         {proximo ? (
           <p className="cobro-texto">
             {proximo.faltan === 0 ? 'Hoy cobrás ' : <>Faltan <strong>{proximo.faltan} {proximo.faltan === 1 ? 'día' : 'días'}</strong> para cobrar </>}
-            <strong>{plata(proximo.monto)}</strong>
-            <span>{proximo.descripcion}, {fechaCorta(proximo.fecha)}</span>
+            <strong>{plata(proximo.monto, proximo.moneda)}</strong>
+            <span>{proximo.descripcion}, {fechaCorta(proximo.fecha)}{proximo.moneda !== 'ARS' && proximo.pesos > 0 && ` (${plata(proximo.pesos)})`}</span>
           </p>
         ) : (
           <p className="cobro-texto">Agregá qué día cobrás y cuánto<span>Así sabés cuánto falta y cuánto podés ahorrar por mes</span></p>

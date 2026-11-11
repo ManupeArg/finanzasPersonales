@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Tabla } from './types'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+// Supabase muestra la URL del proyecto de varias formas (a veces con "/rest/v1/" al final).
+// Nos quedamos solo con "https://xxxx.supabase.co" para que el login no falle con
+// "Invalid path specified in request URL".
+function soloOrigen(valor: string | undefined): string | undefined {
+  try { return valor ? new URL(valor.trim()).origin : undefined } catch { return undefined }
+}
+
+const url = soloOrigen(import.meta.env.VITE_SUPABASE_URL as string | undefined)
+const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
 
 export const supabase = url && key ? createClient(url, key) : null
 /** Sin credenciales de Supabase la app guarda todo en este navegador. */

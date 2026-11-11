@@ -103,9 +103,9 @@ export function useResumen() {
       ahorro: totalCuentas(datos.cuentas, 'ahorro', ajustes),
       actual: totalCuentas(datos.cuentas, 'actual', ajustes),
       gastado: sumar(gastosDelMes(datos.gastos, mes)),
-      cobros: proximosCobros(datos.ingresos, hoy),
-      cobroMensual: ingresoMensual(datos.ingresos),
-      sinCotizar: monedasSinCotizar(datos.cuentas, datos.metas, ajustes),
+      cobros: proximosCobros(datos.ingresos, hoy, ajustes),
+      cobroMensual: ingresoMensual(datos.ingresos, ajustes),
+      sinCotizar: monedasSinCotizar(datos.cuentas, datos.metas, datos.ingresos, ajustes),
       enPesos: (monto: number, moneda: Parameters<typeof aPesos>[1]) => aPesos(monto, moneda, ajustes),
     }
   }, [datos, ajustes])

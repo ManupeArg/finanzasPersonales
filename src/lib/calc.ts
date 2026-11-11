@@ -30,8 +30,8 @@ export function totalCuentas(cuentas: Cuenta[], tipo: Cuenta['tipo'], aj: Pick<A
 }
 
 /** Monedas que tenés cargadas pero sin cotización: no se pueden sumar al total. */
-export function monedasSinCotizar(cuentas: Cuenta[], metas: Meta[], aj: Pick<Ajustes, 'usd' | 'eur'>): Moneda[] {
-  const usadas = new Set<Moneda>([...cuentas.map(c => c.moneda), ...metas.map(m => m.moneda)])
+export function monedasSinCotizar(cuentas: Cuenta[], metas: Meta[], ingresos: Ingreso[], aj: Pick<Ajustes, 'usd' | 'eur'>): Moneda[] {
+  const usadas = new Set<Moneda>([...cuentas.map(c => c.moneda), ...metas.map(m => m.moneda), ...ingresos.map(monedaDe)])
   const faltan: Moneda[] = []
   if (usadas.has('USD') && !(aj.usd > 0)) faltan.push('USD')
   if (usadas.has('EUR') && !(aj.eur > 0)) faltan.push('EUR')
@@ -43,10 +43,15 @@ export const sumar = (gastos: Gasto[]) => gastos.reduce((s, g) => s + g.monto, 0
 
 // ---------- Cobros ----------
 
-export interface Cobro { fecha: string; monto: number; descripcion: string; faltan: number }
+/** `monto` está en la moneda del cobro; `pesos` es su equivalente con la cotización de Ajustes. */
+export interface Cobro { fecha: string; monto: number; moneda: Moneda; pesos: number; descripcion: string; faltan: number }
+
+// Los cobros cargados antes de que existiera la moneda son en pesos.
+const monedaDe = (i: Ingreso): Moneda => i.moneda ?? 'ARS'
+const enPesos = (i: Ingreso, aj: Pick<Ajustes, 'usd' | 'eur'>) => aPesos(i.monto, monedaDe(i), aj)
 
 /** Próximos cobros desde hoy (inclusive), ordenados por fecha. */
-export function proximosCobros(ingresos: Ingreso[], hoy: string): Cobro[] {
+export function proximosCobros(ingresos: Ingreso[], hoy: string, aj: Pick<Ajustes, 'usd' | 'eur'>): Cobro[] {
   const lista: Cobro[] = []
   for (const i of ingresos) {
     let fecha: string | null = null
@@ -57,19 +62,19 @@ export function proximosCobros(ingresos: Ingreso[], hoy: string): Cobro[] {
     } else if (!i.recurrente && i.fecha && i.fecha >= hoy) {
       fecha = i.fecha
     }
-    if (fecha) lista.push({ fecha, monto: i.monto, descripcion: i.descripcion, faltan: diasEntre(hoy, fecha) })
+    if (fecha) lista.push({ fecha, monto: i.monto, moneda: monedaDe(i), pesos: enPesos(i, aj), descripcion: i.descripcion, faltan: diasEntre(hoy, fecha) })
   }
   return lista.sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
-/** Lo que cobrás todos los meses (solo cobros recurrentes). */
-export const ingresoMensual = (ingresos: Ingreso[]) =>
-  ingresos.filter(i => i.recurrente).reduce((s, i) => s + i.monto, 0)
+/** Lo que cobrás todos los meses, en pesos (solo cobros recurrentes). */
+export const ingresoMensual = (ingresos: Ingreso[], aj: Pick<Ajustes, 'usd' | 'eur'>) =>
+  ingresos.filter(i => i.recurrente).reduce((s, i) => s + enPesos(i, aj), 0)
 
 /** Lo que vas a cobrar en un mes puntual: recurrentes + cobros únicos con fecha en ese mes. */
-export const ingresoDelMes = (ingresos: Ingreso[], ym: string) =>
-  ingresoMensual(ingresos) +
-  ingresos.filter(i => !i.recurrente && i.fecha && mesDe(i.fecha) === ym).reduce((s, i) => s + i.monto, 0)
+export const ingresoDelMes = (ingresos: Ingreso[], ym: string, aj: Pick<Ajustes, 'usd' | 'eur'>) =>
+  ingresoMensual(ingresos, aj) +
+  ingresos.filter(i => !i.recurrente && i.fecha && mesDe(i.fecha) === ym).reduce((s, i) => s + enPesos(i, aj), 0)
 
 // ---------- Predicción ----------
 

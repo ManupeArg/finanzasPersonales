@@ -62,6 +62,8 @@ reglas del `schema.sql` y tu contraseña.
 - **Gastos chicos**: lista de cosas para comprar; dónde y precio son opcionales.
   El total suma solo las que tienen precio y no entra en la predicción ni en el
   margen por mes.
+- **Cobros en dólares o euros**: se cargan en su moneda y el margen por mes los
+  toma en pesos a la cotización de Ajustes.
 - **Dólares y euros** se pasan a pesos con la cotización que cargues en Ajustes.
   No se actualiza sola.
 

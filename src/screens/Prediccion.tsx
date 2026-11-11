@@ -7,7 +7,7 @@ export default function Prediccion() {
   const { datos, ajustes } = useStore()
   const r = useResumen()
   const p = r.prediccion
-  const cobro = ingresoDelMes(datos.ingresos, p.mes)
+  const cobro = ingresoDelMes(datos.ingresos, p.mes, ajustes)
   const saldo = cobro - p.total
 
   return (

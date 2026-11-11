@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diasEntre, ingresoDelMes, planificar, predecir, proximosCobros, sumarMeses, totalCuentas } from './calc'
+import { diasEntre, ingresoDelMes, ingresoMensual, monedasSinCotizar, planificar, predecir, proximosCobros, sumarMeses, totalCuentas } from './calc'
 import { leerMonto, plata } from './format'
 import type { Categoria, Gasto, Ingreso } from './types'
 
@@ -44,24 +44,38 @@ describe('montos', () => {
 })
 
 describe('cobros', () => {
+  const aj = { usd: 1000, eur: 1100 }
   const ingresos: Ingreso[] = [
-    { id: '1', descripcion: 'Sueldo', monto: 1000, recurrente: true, dia: 5, fecha: null },
-    { id: '2', descripcion: 'Aguinaldo', monto: 500, recurrente: false, dia: null, fecha: '2026-12-18' },
-    { id: '3', descripcion: 'Viejo', monto: 9, recurrente: false, dia: null, fecha: '2026-10-01' },
+    { id: '1', descripcion: 'Sueldo', monto: 1000, moneda: 'ARS', recurrente: true, dia: 5, fecha: null },
+    { id: '2', descripcion: 'Aguinaldo', monto: 500, moneda: 'ARS', recurrente: false, dia: null, fecha: '2026-12-18' },
+    { id: '3', descripcion: 'Viejo', monto: 9, moneda: 'ARS', recurrente: false, dia: null, fecha: '2026-10-01' },
   ]
   it('el día 5 ya pasó: el próximo es el 5 del mes que viene', () => {
-    const c = proximosCobros(ingresos, '2026-11-11')
+    const c = proximosCobros(ingresos, '2026-11-11', aj)
     expect(c.map(x => x.fecha)).toEqual(['2026-12-05', '2026-12-18'])
     expect(c[0].faltan).toBe(24)
   })
-  it('si cobrás hoy, faltan 0 días', () => expect(proximosCobros(ingresos, '2026-11-05')[0].faltan).toBe(0))
+  it('si cobrás hoy, faltan 0 días', () => expect(proximosCobros(ingresos, '2026-11-05', aj)[0].faltan).toBe(0))
   it('día 31 en un mes de 28', () => {
-    const c = proximosCobros([{ id: 'x', descripcion: 's', monto: 1, recurrente: true, dia: 31, fecha: null }], '2027-02-10')
+    const c = proximosCobros([{ id: 'x', descripcion: 's', monto: 1, moneda: 'ARS', recurrente: true, dia: 31, fecha: null }], '2027-02-10', aj)
     expect(c[0].fecha).toBe('2027-02-28')
   })
+  it('convierte los cobros en dólares y euros', () => {
+    const enUsd: Ingreso[] = [
+      { id: 'a', descripcion: 'Sueldo', monto: 2000, moneda: 'USD', recurrente: true, dia: 1, fecha: null },
+      { id: 'b', descripcion: 'Extra', monto: 100, moneda: 'EUR', recurrente: false, dia: null, fecha: '2026-12-10' },
+      { id: 'c', descripcion: 'Viejo sin moneda', monto: 50, recurrente: true, dia: 2, fecha: null } as unknown as Ingreso,
+    ]
+    expect(ingresoMensual(enUsd, aj)).toBe(2_000_050)
+    expect(ingresoDelMes(enUsd, '2026-12', aj)).toBe(2_110_050)
+    const c = proximosCobros(enUsd, '2026-11-11', aj)[0]
+    expect([c.monto, c.moneda, c.pesos]).toEqual([2000, 'USD', 2_000_000])
+    expect(ingresoMensual(enUsd, { usd: 0, eur: 0 })).toBe(50)
+    expect(monedasSinCotizar([], [], enUsd, { usd: 0, eur: 1100 })).toEqual(['USD'])
+  })
   it('suma los cobros únicos del mes', () => {
-    expect(ingresoDelMes(ingresos, '2026-12')).toBe(1500)
-    expect(ingresoDelMes(ingresos, '2026-11')).toBe(1000)
+    expect(ingresoDelMes(ingresos, '2026-12', aj)).toBe(1500)
+    expect(ingresoDelMes(ingresos, '2026-11', aj)).toBe(1000)
   })
 })
 
